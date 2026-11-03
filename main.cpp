@@ -2,10 +2,18 @@
 // Build: g++ -std=c++17 -pthread main_skeleton.cpp -o csopesy
 
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <windows.h>
 #include "functions.h"
 using namespace std;
 
 int main() {
+    // Windows command to change utf encoding and change console color
+    SetConsoleOutputCP(65001);
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
     Scheduler scheduler;
     bool initialized = false;
 
