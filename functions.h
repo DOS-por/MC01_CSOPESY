@@ -177,12 +177,29 @@ public:
 // 5. CLI HELPERS
 // ============================================================
 inline void printBanner() {
-    // Print the ASCII-art header, "Welcome to CSOPESY Emulator!",
-    // developer names, and last-updated date.
+    cout << "▒▒░░▀▀████ ▒▒░░▀▀████ ▒▒░░▀▀████ ▒▒░░▀▀     ▒▒░░▀▀████ ▒▒░░▀▀████ ▒▒░░  ████\n";
+    cout << "▒▒▒▒  ░░██ ▒▒▒▒  ░░██ ▒▒▒▒  ░░██ ▒▒▒▒  ░░   ▒▒▒▒  ░░██ ▒▒▒▒  ░░██ ▒▒▒▒  ░░██\n";
+    cout << "▒▒▒▒       ▒▒▒▒  ░░░░ ▒▒▒▒  ░░░░ ▒▒▒▒  ░░░░ ▒▒▒▒▄▄▓▒░░ ▒▒▒▒  ░░░░ ▒▒▒▒  ░░░░\n";
+    cout << "▓▓▒▒       ▒▒▒▓▄▄▄▄▄▄ ▓▓▒▒  ▒▒░░ ▓▓▒▒  ▒▒░░ ▓▓▒▒       ▒▒▒▓▄▄▄▄▄▄ ▓▓▒▒  ▒▒░░\n";
+    cout << "▓▓▓▓  ▒▒▒▒ ▄▄▄▄  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▄▄▄▄  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒\n";
+    cout << "▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒ ▓▓▓▓  ▒▒▒▒\n";
+    cout << "▓▓▓▓▄▄▓▓▒▒ ▓▓▓▓▄▄▓▓▒▒ ▓▓▓▓▄▄▓▓▒▒ ▓▓▓▓▄▄▓▓▒▒ ▓▓▓▓▄▄▓▓▒▒ ▓▓▓▓▄▄▓▓▒▒ ▓▓▓▓▄▄▓▓▄▄\n";
+    cout << "           █▀▀                   ▓▓▓▓                  █▀▀              ▓▓▓▓\n";
+    cout << "                                 ▓▓█▓                                   ▓▓▓▓\n";
+    cout << "                                                                        ▓▓▓▓\n";
+    cout << "====================================\n";
+    cout << "Welcome to CSOPESY Emulator!\n";
+    cout << "Developers: \n";
+    cout << "Campos, Don Oswin\n";
+    cout << "Lim, Ethan Yuric\n";
+    cout << "Co, Stephen\n";
+    cout << "Gutierrez, Hanz\n";
+    cout << "Last updated: 2026-11-04\n";
+    cout << "====================================\n";
 }
 
 inline void clearScreen() {
-    // Clear the terminal (ANSI "\033[2J\033[H", or system("cls") on Windows).
+    cout << "\033[2J\033[H"; // ANSI escape code to clear the terminal and move the cursor to the top-left corner
 }
 
 inline vector<string> tokenize(const string& line) {

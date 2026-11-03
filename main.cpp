@@ -1,4 +1,4 @@
-// main_skeleton.cpp -- the main program only. It calls the functions in functions.h.
+// main.cpp -- the main program only. It calls the functions in functions.h.
 // Build: g++ -std=c++17 -pthread main_skeleton.cpp -o csopesy
 
 #include <iostream>
