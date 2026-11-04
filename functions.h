@@ -246,8 +246,8 @@ inline void executeInstruction(Process& p, unsigned long long currentCycle) {
             : currentCycle + instruction.sleepTicks;
         p.state = State::SLEEPING;
         break;
-    case Op::FOR: // Handles FOR operation
-        break;
+    case Op::FOR: // Handles FOR operation - this is already handled during instruction generation
+        break; // No action needed for FOR during execution (supposedly)
     }
 
     ++p.pc;
