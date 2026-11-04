@@ -4,6 +4,10 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <deque>
 #include <map>
 #include <mutex>
@@ -16,17 +20,83 @@ using namespace std;
 // 1. CONFIG
 // ============================================================
 struct Config {
-    // fields: numCpu, scheduler, quantumCycles, batchProcessFreq,
-    //         minIns, maxIns, delayPerExec
+    unsigned long long numCpu = 0;
+    string scheduler;
+    unsigned long long quantumCycles = 0;
+    unsigned long long batchProcessFreq = 0;
+    unsigned long long minIns = 0;
+    unsigned long long maxIns = 0;
+    unsigned long long delayPerExec = 0;
 };
 
 inline bool loadConfig(const string& path, Config& cfg) {
-    // 1. Open config.txt. Return false if it can't be opened.
-    // 2. Read "key value" pairs until EOF.
-    // 3. Strip the quotes around the scheduler value ("rr" -> rr).
-    // 4. Store each value in cfg based on the key.
-    // 5. Validate ranges (num-cpu 1..128, min-ins <= max-ins, scheduler is fcfs/rr).
-    // 6. Return true if everything is valid.
+    ifstream in(path);
+    if (!in) {
+        cout << "Error: cannot open " << path << ".\n";
+        return false;
+    }
+
+    const unsigned long long MAX32 = 4294967296ULL; // value for 2^32
+    Config c;
+    bool hasCpu = false, hasSched = false, hasQuantum = false, hasFreq = false;
+    bool hasMin = false, hasMax = false, hasDelay = false;
+
+    string key, value;
+    while (in >> key >> value) {
+        if (key == "scheduler") {
+            if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+                value = value.substr(1, value.size() - 2);
+            c.scheduler = value;
+            hasSched = true;
+            continue;
+        }
+
+        // numeric values must be plain non-negative integers.
+        if (value.empty() || value.find_first_not_of("0123456789") != string::npos || value.size() > 12) {
+            cout << "Error: invalid value \"" << value << "\" for " << key << ".\n";
+            return false;
+        }
+        unsigned long long n = stoull(value);
+
+        if (key == "num-cpu") { c.numCpu = n; hasCpu = true; }
+        else if (key == "quantum-cycles") { c.quantumCycles = n; hasQuantum = true; }
+        else if (key == "batch-process-freq") { c.batchProcessFreq = n; hasFreq = true; }
+        else if (key == "min-ins") { c.minIns = n; hasMin = true; }
+        else if (key == "max-ins") { c.maxIns = n; hasMax = true; }
+        else if (key == "delays-per-exec") { c.delayPerExec = n; hasDelay = true; }
+        else {
+            cout << "Error: unknown config key \"" << key << "\".\n";
+            return false;
+        }
+    }
+
+    if (!(hasCpu && hasSched && hasQuantum && hasFreq && hasMin && hasMax && hasDelay)) {
+        cout << "Error: config file is missing one or more parameters.\n";
+        return false;
+    }
+    if (c.numCpu < 1 || c.numCpu > 128) {
+        cout << "Error: num-cpu must be in [1, 128].\n";
+        return false;
+    }
+    if (c.scheduler != "fcfs" && c.scheduler != "rr") {
+        cout << "Error: scheduler must be \"fcfs\" or \"rr\".\n";
+        return false;
+    }
+    if (c.quantumCycles < 1 || c.quantumCycles > MAX32 ||
+        c.batchProcessFreq < 1 || c.batchProcessFreq > MAX32 ||
+        c.minIns < 1 || c.minIns > MAX32 ||
+        c.maxIns < 1 || c.maxIns > MAX32 ||
+        c.delayPerExec > MAX32) {
+        cout << "Error: a config value is out of range.\n";
+        return false;
+    }
+    if (c.minIns > c.maxIns) {
+        cout << "Error: min-ins must not exceed max-ins.\n";
+        return false;
+    }
+
+    cfg = c;
+    return true;
 }
 
 // ============================================================
@@ -100,18 +170,27 @@ public:
     //          mutex, ready queue, vector of cores (one process pointer each,
     //          null = idle), list of all processes, next process id, OS thread
 
+    Config config;
+    atomic<bool> running{false};
+    atomic<bool> generating{false};
+    thread osThread;
+
+    ~Scheduler() { stop(); }
+
     void start(const Config& cfg) {
-        // 1. Save cfg and size the cores vector to numCpu (all idle).
-        // 2. Set running = true.
-        // 3. Launch the OS thread running loop().
+        stop();
+        config = cfg;
+        running = true;
+        osThread = thread(&Scheduler::loop, this);
     }
 
     void stop() {
-        // Set running = false and join the OS thread.
+        running = false;
+        if (osThread.joinable()) osThread.join();
     }
 
     void setGenerating(bool on) {
-        // Set the `generating` flag (used by scheduler-start / scheduler-stop).
+        generating = on;
     }
 
     void loop() {
@@ -199,7 +278,11 @@ inline void clearScreen() {
 }
 
 inline vector<string> tokenize(const string& line) {
-    // Split the line on whitespace and return the tokens.
+    vector<string> tokens;
+    istringstream iss(line);
+    string tok;
+    while (iss >> tok) tokens.push_back(tok);
+    return tokens;
 }
 
 inline void printProcessInfo(Scheduler& s, Process* p) {
@@ -232,6 +315,11 @@ inline void handleReportUtil(Scheduler& s) {
 }
 
 inline bool handleInitialize(Scheduler& s) {
-    // loadConfig("config.txt"), then s.start(cfg).
-    // Print an error and return false if loading fails; otherwise return true.
+    Config cfg;
+    if (!loadConfig("config.txt", cfg)) return false;
+    s.start(cfg);
+    cout << "Configuration loaded from config.txt.\n";
+    cout << "Initialized with " << cfg.numCpu << " CPU(s), scheduler: " << cfg.scheduler << ".\n";
+    cout << "Quantum Cycles: " << cfg.quantumCycles << "\n";
+    return true;
 }
