@@ -33,7 +33,7 @@ int main() {
 
         // Before initialize, only "initialize" and "exit" are recognized
         if (!initialized) {
-            if (cmd == "initialize") initialized = handleInitialize(scheduler);
+            if (cmd == "initialize" || cmd == "init") initialized = handleInitialize(scheduler);
             else cout << "Please run \"initialize\" first.\n";
             continue;
         }
@@ -43,6 +43,7 @@ int main() {
         else if (cmd == "scheduler-stop")  scheduler.setGenerating(false);
         else if (cmd == "report-util")     handleReportUtil(scheduler);
         else if (cmd == "initialize")      cout << "Already initialized.\n";
+        else if (cmd == "help") handleHelp();
         else                               cout << "Unknown command.\n";
     }
 

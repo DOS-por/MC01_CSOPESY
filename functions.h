@@ -319,7 +319,25 @@ inline bool handleInitialize(Scheduler& s) {
     if (!loadConfig("config.txt", cfg)) return false;
     s.start(cfg);
     cout << "Configuration loaded from config.txt.\n";
-    cout << "Initialized with " << cfg.numCpu << " CPU(s), scheduler: " << cfg.scheduler << ".\n";
+    cout << "Initialized with " << cfg.numCpu << " CPU(s)\n";
+    cout << "Scheduler: " << cfg.scheduler << "\n";
     cout << "Quantum Cycles: " << cfg.quantumCycles << "\n";
+    cout << "Batch Process Frequency: " << cfg.batchProcessFreq << "\n";
+    cout << "Min Instructions: " << cfg.minIns << "\n";
+    cout << "Max Instructions: " << cfg.maxIns << "\n";
+    cout << "Delays per Execution: " << cfg.delayPerExec << "\n";
     return true;
+}
+
+inline void handleHelp() {
+    cout << "Available commands:\n";
+    cout << "  initialize       Initialize the scheduler with config.txt\n";
+    cout << "  screen -s <name> Create and enter a new process screen\n";
+    cout << "  screen -r <name> Resume an existing process screen\n";
+    cout << "  screen -ls       List all processes\n";
+    cout << "  scheduler-start  Start the scheduler\n";
+    cout << "  scheduler-stop   Stop the scheduler\n";
+    cout << "  report-util      Generate a utilization report\n";
+    cout << "  help             Show this help message\n";
+    cout << "  exit             Exit the program\n";
 }
