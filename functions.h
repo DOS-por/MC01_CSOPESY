@@ -1,5 +1,4 @@
-// functions.h -- ALL structs, classes and functions live here (blank, with instructions).
-// Header-only: free functions are marked `inline` so you only need two files.
+// functions.h -- ALL structs, classes and functions locations
 
 #pragma once
 
@@ -308,32 +307,103 @@ inline vector<string> tokenize(const string& line) {
 }
 
 inline void printProcessInfo(Scheduler& s, Process* p) {
-    // Used by "process-smi". Under the lock print:
-    //   Process name, ID, Logs (every entry in p->logs).
-    //   If FINISHED: print "Finished!".
-    //   Otherwise: print "Current instruction line" and "Lines of code".
+    if(!p) return;
+
+    // printing of processes
+    cout << "----------------------------------------------\n";
+    cout << "Process Name: " << p->name << "\n";
+    cout << "ID: " << p->id << "\n";
+    cout << "Logs: " << "\n";
+    for(const auto& log: p->logs) {
+        cout << log << "\n";
+    }
+    cout << "\n";
+    cout << "\n";
+
+    // for printing the current instruction line and lines of code and if process is finished
+    if(p->state == State::FINISHED) {
+        cout << "Finished!!\n";
+    }
+    else {
+        cout << "Current Instruction line: " << p->pc << "\n";
+        cout << "Lines of code: " << p->code.size() << "\n";
+    }
+    cout << "----------------------------------------------\n";
 }
 
 inline void processScreen(Scheduler& s, const string& name) {
-    // 1. clearScreen().
-    // 2. Loop: print the prompt, read a line.
-    //      "process-smi" -> printProcessInfo()
-    //      "exit"        -> clearScreen(), printBanner(), return
-    //      anything else -> "Unknown command."
+    string line;
+    while(true) {
+        cout << "\nroot:\\> ";
+
+        auto tokens = tokenize(line);
+        
+        if(tokens.empty()) {
+            continue;
+        }
+
+        if(tokens[0] == "process-smi") {
+            Process* p = s.findProcess(name);
+            if(p) {
+                printProcessInfo(s, p);
+            }
+            else
+            {
+                cout << "Error: Process not found"
+            }
+        }
+        else if(tokens[0] == "exit") {
+            clearScreen();
+            printBanner();
+            return;
+        }
+        else {
+            cout << "Unknown command. Please type valid commands";c
+        }
+    }
 }
 
 inline void handleScreenCommand(Scheduler& s, const vector<string>& tokens) {
-    // "screen -s <name>": createProcess(); if nullptr print a duplicate-name
-    //                     message, else processScreen().
-    // "screen -r <name>": if findProcess() is null or FINISHED, print
-    //                     "Process <name> not found."; else processScreen().
-    // "screen -ls":       print s.buildReport().
-    // Anything else:      print a usage message.
+    if (tokens.size() < 2) {
+        cout << "Usage: screen -s <name> | screen -r <name> | screen -ls\n";
+        return;
+    }
+
+    if (tokens[1] == "-s" && tokens.size() >= 3) {
+        string name = tokens[2];
+        Process* p = s.createProcess(name);
+        if (p == nullptr) {
+            cout << "Error: Process with name \"" << name << "\" already exists.\n";
+        } else {
+            processScreen(s, name);
+        }
+    } 
+    else if (tokens[1] == "-r" && tokens.size() >= 3) {
+        string name = tokens[2];
+        Process* p = s.findProcess(name);
+        if (p == nullptr || p->state == State::FINISHED) {
+            cout << "Process \"" << name << "\" not found or already finished.\n";
+        } else {
+            processScreen(s, name);
+        }
+    } 
+    else if (tokens[1] == "-ls") {
+        cout << s.buildReport();
+    } 
+    else {
+        cout << "Invalid screen command usage.\n";
+    }
 }
 
 inline void handleReportUtil(Scheduler& s) {
-    // Write s.buildReport() to csopesy-log.txt and print
-    // "Report generated at csopesy-log.txt!".
+    fstream logFile("csopesy-log.txt");
+    if (logFile.is_open()) {
+        logFile << s.buildReport();
+        logFile.close();
+        cout << "Report generated at csopesy-log.txt!\n";
+    } else {
+        cout << "Error: File not Found\n";
+    }
 }
 
 inline bool handleInitialize(Scheduler& s) {
