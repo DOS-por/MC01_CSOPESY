@@ -38,15 +38,28 @@ int main() {
             continue;
         }
 
-        if      (cmd == "screen")          handleScreenCommand(scheduler, tokens);
-        else if (cmd == "scheduler-start") scheduler.setGenerating(true);
-        else if (cmd == "scheduler-stop")  scheduler.setGenerating(false);
-        else if (cmd == "report-util")     handleReportUtil(scheduler);
-        else if (cmd == "initialize")      cout << "Already initialized.\n";
-        else if (cmd == "help") handleHelp();
-        else                               cout << "Unknown command.\n";
+        if (cmd == "screen") {          
+            handleScreenCommand(scheduler, tokens);
+        }
+        else if (cmd == "scheduler-start") {
+            scheduler.setGenerating(true);
+        }
+        else if (cmd == "scheduler-stop") { 
+            scheduler.setGenerating(false);
+        }
+        else if (cmd == "report-util") {   
+            handleReportUtil(scheduler);
+        }
+        else if (cmd == "initialize") { 
+            cout << "Already initialized.\n";
+        }
+        else if (cmd == "help") {
+            handleHelp();
+        }
+        else {                               
+            cout << "Unknown command.\n";
+        }
     }
-
     scheduler.stop();
     return 0;
 }

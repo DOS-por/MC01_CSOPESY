@@ -105,15 +105,37 @@ inline bool loadConfig(const string& path, Config& cfg) {
 enum class Op { PRINT, DECLARE, ADD, SUBTRACT, SLEEP, FOR };
 
 struct Instruction {
-    // fields: Op type, variable name(s), operand values, message,
-    //         sleep ticks, repeat count, child instructions (for FOR)
+    Op type;
+
+    //Fields that are needed for each of the operation type
+    string message; // used to store the message for PRINT operation
+    string op1; // First operand for ADD or SUBTRACT
+    string op2; // Second operand for ADD or SUBTRACT
+    string result_var; //variable used to store the result for DECLARE, SUBTRACT, and ADD
+    uint16_t var = 0; //used for DECLARE operation with default value of 0
+    uint8_t sleepTicks = 0; // used for SLEEP operation with default value of 0
+
+
+    //Needed variables for the FOR operations
+    unsigned long long repeats = 0; // value that decides how may repetitions will be done
+    vector<Instruction> body; // The instruction that will be repeated
 };
 
 inline void flattenInstruction(const Instruction& ins, vector<Instruction>& out) {
-    // 1. If ins is not a FOR, push it to `out` and return.
-    // 2. If it is a FOR, repeat `repeats` times:
-    //      for each child in its body, call flattenInstruction(child, out).
-    // (Nested FORs work automatically through recursion.)
+
+    // if the operation/instruction does not need repetion push it to out and return
+    if(ins.type != Op::FOR){
+        out.push_back(ins);
+        return;
+    }
+
+    // This is specifically used for the FOR operation
+    for(unsigned long long i = 0; i < ins.repeats; i++){
+        // for loop used to get the body of the FOR operation command
+        for(const auto& child : ins.body) {
+            flattenInstruction(child, out);
+        }
+    }
 }
 
 // ============================================================
