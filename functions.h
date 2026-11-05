@@ -20,8 +20,8 @@
 #include <windows.h>
 using namespace std;
 
-#undef max
 
+#undef max
 // ============================================================
 // 1. CONFIG
 // ============================================================
@@ -625,7 +625,7 @@ inline void processScreen(Scheduler& s, const string& name) {
     string line;
     while(true) {
         cout << "\nroot:\\> ";
-        if (!getline(cin, line)) return;
+        if (!getline(cin, line)) break;
 
         auto tokens = tokenize(line);
         
