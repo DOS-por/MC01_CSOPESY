@@ -312,6 +312,8 @@ public:
     vector<Process*> cores;
     vector<Process*> allProcesses;
     unsigned long long nextProcessId = 1;
+    // Cores that executed during the last tick; counted before cores are freed.
+    size_t busyCoresLastTick = 0;
 
     ~Scheduler() { 
         stop(); 
@@ -324,6 +326,7 @@ public:
         stop();
         config = cfg;
         cpuCycles = 0;
+        busyCoresLastTick = 0;
         cores.assign(config.numCpu, nullptr);
         running = true;
         osThread = thread(&Scheduler::loop, this);
@@ -412,9 +415,11 @@ public:
         //   4. Else if scheduler is "rr" and quantumUsed >= quantumCycles:
         //      set READY, push to the back of the ready queue, free the core.
         //   5. "fcfs" never preempts.
+        busyCoresLastTick = 0;
         for (size_t i = 0; i < cores.size(); ++i) {
             Process* p = cores[i];
             if (p == nullptr) continue;
+            busyCoresLastTick++;
 
             if (p->delayLeft > 0) {
                 p->delayLeft--;
@@ -470,10 +475,7 @@ public:
         //   - "Running processes:" each with name, timestamp, core, pc / total lines
         //   - "Finished processes:" each with name, timestamp, "Finished", total / total
         lock_guard<mutex> lock(mtx);
-        int coresUsed = 0;
-        for (Process* core : cores) {
-            if (core != nullptr) coresUsed++;
-        }
+        int coresUsed = static_cast<int>(busyCoresLastTick);
         
         int util = (config.numCpu == 0) ? 0 : (coresUsed * 100) / config.numCpu;
         
