@@ -41,7 +41,7 @@ Before running the program, ensure a `config.txt` file is placed in the root dir
 1. Open your terminal in the root directory where `main.cpp` and `functions.h` are located.
 2. Run the compilation command:
    ```bash
-   g++ -std=c++17 -pthread main.cpp -o csopesy.exe
+   g++ -std=c++17 -pthread main.cpp -o main.exe
    ```
 
 ### Available Commands in the Program
