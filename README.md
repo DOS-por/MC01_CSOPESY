@@ -17,3 +17,29 @@ my_console_project/
 └── csopesy-log.txt                 # file that contains the report of the utilization
 ```
 
+## Prerequisites
+* **C++ Compiler:** `g++` with C++17 support and `pthread` library.
+* **Operating System:** Windows (Command Prompt / PowerShell).
+
+## Configuration (`config.txt`)
+Before running the program, ensure a `config.txt` file is placed in the root directory with the following parameters:
+
+| Parameter | Description |
+| :--- | :--- |
+| **`num-cpu`** | Number of CPUs available. The range is $[1, 128]$. |
+| **`scheduler`** | The scheduler algorithm: `"fcfs"` or `"rr"`. |
+| **`quantum-cycles`** | The time slice given for each processor if a round-robin scheduler is used. Has no effect on other schedulers. The range is $[1, 2^{32}]$. |
+| **`batch-process-freq`** | The frequency of generating processes in the `scheduler-start` command in CPU cycles. The range is $[1, 2^{32}]$. If one, a new process is generated at the end of each CPU cycle. |
+| **`min-ins`** | The minimum instructions/command per process. The range is $[1, 2^{32}]$. |
+| **`max-ins`** | The maximum instructions/command per process. The range is $[1, 2^{32}]$. |
+| **`delays-per-exec`** | Delay before executing the next instruction in CPU cycles. The delay is a “busy-waiting” scheme wherein the process remains in the CPU. The range is $[0, 2^{32}]$. If zero, each instruction is executed per CPU cycle. |
+
+
+## Build and Run Instructions
+
+### Compilation Instructions
+1. Open your terminal in the root directory where `main.cpp` and `functions.h` are located.
+2. Run the compilation command:
+   ```bash
+   g++ -std=c++17 -pthread main.cpp -o csopesy.exe
+   ```
