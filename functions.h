@@ -623,6 +623,7 @@ inline void processScreen(Scheduler& s, const string& name) {
     string line;
     while(true) {
         cout << "\nroot:\\> ";
+        if (!getline(cin, line)) return;
 
         auto tokens = tokenize(line);
         
