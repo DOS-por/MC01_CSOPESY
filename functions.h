@@ -19,6 +19,7 @@
 #include <vector>
 #include <windows.h>
 using namespace std;
+#undef max
 
 // ============================================================
 // 1. CONFIG
@@ -623,6 +624,7 @@ inline void processScreen(Scheduler& s, const string& name) {
     string line;
     while(true) {
         cout << "\nroot:\\> ";
+        if (!getline(cin, line)) break;
 
         auto tokens = tokenize(line);
         
@@ -684,7 +686,7 @@ inline void handleScreenCommand(Scheduler& s, const vector<string>& tokens) {
 }
 
 inline void handleReportUtil(Scheduler& s) {
-    fstream logFile("csopesy-log.txt");
+    ofstream logFile("csopesy-log.txt");
     if (logFile.is_open()) {
         logFile << s.buildReport();
         logFile.close();
