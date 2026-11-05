@@ -43,3 +43,19 @@ Before running the program, ensure a `config.txt` file is placed in the root dir
    ```bash
    g++ -std=c++17 -pthread main.cpp -o csopesy.exe
    ```
+
+### Available Commands in the Program
+
+| Command | Arguments / Input | Description |
+| :--- | :--- | :--- |
+| **`initialize`** (or `init`) | *None* | Loads parameters from `config.txt` and starts the scheduler background threads. |
+| **`screen -s`** | `<name>` | Creates a new process with the specified name, pushes it to the ready queue, and enters its virtual screen. |
+| **`screen -r`** | `<name>` | Resumes/enters the virtual screen of an existing process. |
+| **`screen -ls`** | *None* | Displays overall CPU utilization, core usage statistics, and a full list of running and finished processes. |
+| **`scheduler-start`** | *None* | Activates the background process generator loop based on the batch frequency. |
+| **`scheduler-stop`** | *None* | Pauses the automatic process generation loop. |
+| **`report-util`** | *None* | Exports the current utilization report to a file named `csopesy-log.txt`. |
+| **`help`** | *None* | Displays the list of available commands. |
+| **`exit`** | *None* | Safely stops background threads and terminates the program. |
+
+*Note: While inside a process screen via `screen -s` or `screen -r`, the available sub-commands are `process-smi` to view internal details/logs and `exit` to return to the main menu.*
