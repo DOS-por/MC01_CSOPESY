@@ -263,90 +263,31 @@ inline Process* generateProcess(int id, const string& name, const Config& cfg) {
     static thread_local mt19937_64 randomEngine(random_device{}());
     uniform_int_distribution<unsigned long long> lengthDistribution(
         cfg.minIns, cfg.maxIns);
-    uniform_int_distribution<unsigned int> smallValueDistribution(0, 65535);
-    uniform_int_distribution<unsigned int> variableDistribution(0, 2);
-    uniform_int_distribution<unsigned int> sleepDistribution(1, 255);
-    uniform_int_distribution<unsigned int> choiceDistribution(0, 5);
-    uniform_int_distribution<unsigned int> bodySizeDistribution(1, 2);
-    uniform_int_distribution<unsigned int> repeatDistribution(1, 3);
-    const vector<string> variableNames = {"x", "y", "z"};
+    uniform_int_distribution<unsigned int> addValueDistribution(1, 10);
     const unsigned long long targetLength = lengthDistribution(randomEngine);
-
-    auto randomVariable = [&]() -> const string& {
-        return variableNames[variableDistribution(randomEngine)];
-    };
-    auto randomOperand = [&]() -> string {
-        if (smallValueDistribution(randomEngine) % 2 == 0)
-            return randomVariable();
-        return to_string(smallValueDistribution(randomEngine));
-    };
-
-    function<Instruction(unsigned int)> makeInstruction;
-    makeInstruction = [&](unsigned int depth) -> Instruction {
-        Instruction instruction{};
-        unsigned int choice = choiceDistribution(randomEngine);
-        if (choice == 5 && depth < 3) {
-            instruction.type = Op::FOR;
-            instruction.repeats = repeatDistribution(randomEngine);
-            const unsigned int bodySize = bodySizeDistribution(randomEngine);
-            for (unsigned int i = 0; i < bodySize; ++i)
-                instruction.body.push_back(makeInstruction(depth + 1));
-            return instruction;
-        }
-
-        switch (choice % 5) {
-        case 0:
-            instruction.type = Op::PRINT;
-            instruction.message = "Hello world from " + name + "!";
-            break;
-        case 1:
-            instruction.type = Op::DECLARE;
-            instruction.result_var = randomVariable();
-            instruction.var = static_cast<uint16_t>(
-                smallValueDistribution(randomEngine));
-            break;
-        case 2:
-            instruction.type = Op::ADD;
-            instruction.result_var = randomVariable();
-            instruction.op1 = randomOperand();
-            instruction.op2 = randomOperand();
-            break;
-        case 3:
-            instruction.type = Op::SUBTRACT;
-            instruction.result_var = randomVariable();
-            instruction.op1 = randomOperand();
-            instruction.op2 = randomOperand();
-            break;
-        case 4:
-            instruction.type = Op::SLEEP;
-            instruction.sleepTicks = static_cast<uint8_t>(
-                sleepDistribution(randomEngine));
-            break;
-        }
-        return instruction;
-    };
 
     auto process = new Process{};
     process->id = id;
     process->name = name;
     process->state = State::READY;
     process->creationTimestamp = getTimestamp();
+    process->variables["x"] = 0;
 
-    while (process->code.size() < targetLength) {
-        Instruction instruction = makeInstruction(0);
-        vector<Instruction> flattened;
-        flattenInstruction(instruction, flattened);
-        const size_t remaining = static_cast<size_t>(
-            targetLength - process->code.size());
-        if (flattened.size() <= remaining) {
-            process->code.insert(process->code.end(),
-                flattened.begin(), flattened.end());
+    // Alternate PRINT("Value from: " + x) and ADD(x, x, 1-10).
+    process->code.reserve(static_cast<size_t>(targetLength));
+    for (unsigned long long i = 0; i < targetLength; ++i) {
+        Instruction instruction{};
+        if (i % 2 == 0) {
+            instruction.type = Op::PRINT;
+            instruction.message = "Value from: ";
+            instruction.printVariable = "x";
         } else {
-            Instruction fallback = makeInstruction(3);
-            vector<Instruction> singleInstruction;
-            flattenInstruction(fallback, singleInstruction);
-            process->code.push_back(singleInstruction.front());
+            instruction.type = Op::ADD;
+            instruction.result_var = "x";
+            instruction.op1 = "x";
+            instruction.op2 = to_string(addValueDistribution(randomEngine));
         }
+        process->code.push_back(instruction);
     }
 
     return process;
