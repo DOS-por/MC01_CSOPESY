@@ -358,17 +358,30 @@ public:
     // members: Config, atomic cpuCycles, atomic running/generating flags,
     //          mutex, ready queue, vector of cores (one process pointer each,
     //          null = idle), list of all processes, next process id, OS thread
-
     Config config;
+    atomic<unsigned long long> cpuCycles{0};
     atomic<bool> running{false};
     atomic<bool> generating{false};
     thread osThread;
+    
+    mutex mtx;
+    deque<Process*> readyQueue;
+    vector<Process*> cores;
+    vector<Process*> allProcesses;
+    unsigned long long nextProcessId = 1;
 
-    ~Scheduler() { stop(); }
+    ~Scheduler() { 
+        stop(); 
+        for (Process* p : allProcesses) {
+            delete p;
+        }
+    }
 
     void start(const Config& cfg) {
         stop();
         config = cfg;
+        cpuCycles = 0;
+        cores.assign(config.numCpu, nullptr);
         running = true;
         osThread = thread(&Scheduler::loop, this);
     }
@@ -391,23 +404,60 @@ public:
         //     4. executeStep()
         //     5. cpuCycles++
         //   unlock, then sleep briefly so the loop doesn't spin at 100% CPU.
+        while (running) {
+            {
+                lock_guard<mutex> lock(mtx);
+                generateStep();
+                wakeSleepers();
+                dispatchStep();
+                executeStep();
+                cpuCycles++;
+            }
+            this_thread::sleep_for(chrono::milliseconds(1));
+        }
     }
 
     void generateStep() {
         // If `generating` is true and cpuCycles % batchProcessFreq == 0:
         //   create a process named p01, p02, ... with generateProcess(),
         //   store it in the process list, push it to the ready queue.
+        if (generating && (cpuCycles % config.batchProcessFreq == 0)) {
+            string name = "p" + to_string(nextProcessId);
+            Process* p = generateProcess(nextProcessId, name, config);
+            nextProcessId++;
+            
+            allProcesses.push_back(p);
+            readyQueue.push_back(p);
+        }
     }
 
     void wakeSleepers() {
         // For each SLEEPING process: if cpuCycles >= sleepUntil,
         //   set it READY and push it to the ready queue.
+        for (Process* p : allProcesses) {
+            if (p->state == State::SLEEPING && cpuCycles >= p->sleepUntil) {
+                p->state = State::READY;
+                readyQueue.push_back(p);
+            }
+        }
     }
 
     void dispatchStep() {
         // For each idle core: if the ready queue isn't empty,
         //   pop the front process, set RUNNING, set its core id,
         //   reset quantumUsed and delayLeft, put it on that core.
+        for (size_t i = 0; i < cores.size(); ++i) {
+            if (cores[i] == nullptr && !readyQueue.empty()) {
+                Process* p = readyQueue.front();
+                readyQueue.pop_front();
+                
+                p->state = State::RUNNING;
+                p->assignedCore = i;
+                p->quantumUsed = 0;
+                p->delayLeft = config.delayPerExec;
+                cores[i] = p;
+            }
+        }
     }
 
     void executeStep() {
@@ -419,10 +469,37 @@ public:
         //   4. Else if scheduler is "rr" and quantumUsed >= quantumCycles:
         //      set READY, push to the back of the ready queue, free the core.
         //   5. "fcfs" never preempts.
+        for (size_t i = 0; i < cores.size(); ++i) {
+            Process* p = cores[i];
+            if (p == nullptr) continue;
+
+            if (p->delayLeft > 0) {
+                p->delayLeft--;
+                p->quantumUsed++;
+            } else {
+                executeInstruction(*p, cpuCycles);
+                p->delayLeft = config.delayPerExec;
+                p->quantumUsed++;
+            }
+
+            if (p->state == State::FINISHED || p->state == State::SLEEPING) {
+                cores[i] = nullptr;
+            } 
+            else if (config.scheduler == "rr" && p->quantumUsed >= config.quantumCycles) {
+                p->state = State::READY;
+                readyQueue.push_back(p);
+                cores[i] = nullptr;
+            }
+        }
     }
 
     Process* findProcess(const string& name) {
         // Search the process list by name; return nullptr if not found.
+        lock_guard<mutex> lock(mtx);
+        for (Process* p : allProcesses) {
+            if (p->name == name) return p;
+        }
+        return nullptr;
     }
 
     Process* createProcess(const string& name) {
@@ -430,6 +507,17 @@ public:
         //   reject duplicate names (return nullptr),
         //   build with generateProcess(), store it, push to the ready queue,
         //   return the pointer.
+        lock_guard<mutex> lock(mtx);
+        for (Process* p : allProcesses) {
+            if (p->name == name) return nullptr;
+        }
+        
+        Process* p = generateProcess(nextProcessId, name, config);
+        nextProcessId++;
+        
+        allProcesses.push_back(p);
+        readyQueue.push_back(p);
+        return p;
     }
 
     string buildReport() {
@@ -438,6 +526,38 @@ public:
         //   - cores used and cores available
         //   - "Running processes:" each with name, timestamp, core, pc / total lines
         //   - "Finished processes:" each with name, timestamp, "Finished", total / total
+        lock_guard<mutex> lock(mtx);
+        int coresUsed = 0;
+        for (Process* core : cores) {
+            if (core != nullptr) coresUsed++;
+        }
+        
+        int util = (config.numCpu == 0) ? 0 : (coresUsed * 100) / config.numCpu;
+        
+        stringstream ss;
+        ss << "CPU utilization: " << util << "%\n";
+        ss << "Cores used: " << coresUsed << "\n";
+        ss << "Cores available: " << (config.numCpu - coresUsed) << "\n\n";
+        
+        ss << "----------------------------------------------\n";
+        ss << "Running processes:\n";
+        for (Process* p : allProcesses) {
+            if (p->state != State::FINISHED) {
+                string coreStr = (p->assignedCore != -1) ? to_string(p->assignedCore) : "N/A";
+                ss << p->name << "\t(" << p->creationTimestamp << ")\tCore: " << coreStr 
+                   << "\t" << p->pc << " / " << p->code.size() << "\n";
+            }
+        }
+        
+        ss << "\nFinished processes:\n";
+        for (Process* p : allProcesses) {
+            if (p->state == State::FINISHED) {
+                ss << p->name << "\t(" << p->creationTimestamp << ")\tFinished\t" 
+                   << p->code.size() << " / " << p->code.size() << "\n";
+            }
+        }
+        ss << "----------------------------------------------\n";
+        return ss.str();
     }
 };
 
