@@ -49,8 +49,8 @@ Before running the program, ensure a `config.txt` file is placed in the root dir
 | Command | Arguments / Input | Description |
 | :--- | :--- | :--- |
 | **`initialize`** (or `init`) | *None* | Loads parameters from `config.txt` and starts the scheduler background threads. |
-| **`screen -s`** | `<name>` | Creates a new process with the specified name, pushes it to the ready queue, and enters its virtual screen. |
-| **`screen -r`** | `<name>` | Resumes/enters the virtual screen of an existing process. |
+| **`screen -s`** | `<process name>` | Creates a new process with the specified name, pushes it to the ready queue, and enters its virtual screen. |
+| **`screen -r`** | `<process name>` | Resumes/enters the virtual screen of an existing process. |
 | **`screen -ls`** | *None* | Displays overall CPU utilization, core usage statistics, and a full list of running and finished processes. |
 | **`scheduler-start`** | *None* | Activates the background process generator loop based on the batch frequency. |
 | **`scheduler-stop`** | *None* | Pauses the automatic process generation loop. |
